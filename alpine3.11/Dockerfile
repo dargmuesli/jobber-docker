@@ -1,3 +1,13 @@
+FROM golang:1.11 AS s1
+
+ENV JOBBER_VER v1.4.5
+
+WORKDIR /go_wkspc/src/github.com/dshearer
+COPY jobber-maint-1.4 jobber
+WORKDIR /go_wkspc/src/github.com/dshearer/jobber
+RUN make check && \
+    make install DESTDIR=/jobber-dist/
+
 FROM alpine:3.11
 
 # make user
@@ -8,18 +18,16 @@ RUN addgroup jobberuser && \
     chown -R jobberuser:jobberuser "/var/jobber/${USERID}"
 
 # install jobber
-ENV JOBBER_VERSION 1.4.4
-ENV JOBBER_SHA256 ec09b2efafff69c91fba2124bf28607209e1c9b50ed834ff444a9d40798aa8d3
-RUN wget -O /tmp/jobber.apk "https://github.com/dshearer/jobber/releases/download/v${JOBBER_VERSION}/jobber-${JOBBER_VERSION}-r0.apk" && \
-    echo -n "Actual checksum: " && sha256sum /tmp/jobber.apk && \
-    echo "${JOBBER_SHA256} */tmp/jobber.apk" | sha256sum -c && \
-# --no-scripts is needed b/c the post-install scripts don't work in Docker
-    apk add --no-network --no-scripts --allow-untrusted /tmp/jobber.apk && \
-    rm /tmp/jobber.apk
+RUN apk add --no-cache libc6-compat
+RUN mkdir /jobber
+COPY --from=0 /jobber-dist/etc/jobber.conf /etc/jobber.conf
+COPY --from=0 /jobber-dist/usr/local/libexec/jobberrunner /jobber/jobberrunner
+COPY --from=0 /jobber-dist/usr/local/bin/jobber /jobber/jobber
+ENV PATH /jobber:${PATH}
 
 # add jobfile
 COPY --chown=jobberuser:jobberuser jobfile /home/jobberuser/.jobber
 RUN chmod 0600 /home/jobberuser/.jobber
 
 USER jobberuser
-CMD ["/usr/libexec/jobberrunner", "-u", "/var/jobber/1000/cmd.sock", "/home/jobberuser/.jobber"]
+CMD ["/jobber/jobberrunner", "-u", "/var/jobber/1000/cmd.sock", "/home/jobberuser/.jobber"]
