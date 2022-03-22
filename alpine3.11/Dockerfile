@@ -8,7 +8,7 @@ WORKDIR /go_wkspc/src/github.com/dshearer/jobber
 RUN make check && \
     make install DESTDIR=/jobber-dist/
 
-FROM alpine:3.11
+FROM alpine:3.15.1
 
 # make user
 ENV USERID 1000
