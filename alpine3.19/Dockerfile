@@ -1,4 +1,4 @@
-FROM golang:1.11 AS s1
+FROM golang:1.22.3 AS s1
 
 ENV JOBBER_VER v1.4.5
 
@@ -8,7 +8,7 @@ WORKDIR /go_wkspc/src/github.com/dshearer/jobber
 RUN make check && \
     make install DESTDIR=/jobber-dist/
 
-FROM alpine:3.16.0
+FROM alpine:3.19.1
 
 # make user
 ENV USERID 1000
